@@ -28,14 +28,22 @@ public class Renderer implements GLEventListener  {
     private final GLWindow glWindow;
 
     private float[]                 txtVerts = {
-            -1.0f, -1.0f,  0.0f,
-             1.0f, -1.0f,  0.0f,
-             1.0f,  1.0f,  0.0f,
-            -1.0f,  1.0f,  0.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            -1.0f, -1.0f,   -2.0f,
+             1.0f, -1.0f,   -2.0f,
+             1.0f,  1.0f,   -2.0f,
+            -1.0f,  1.0f,   -2.0f,
+             0.0f,  0.0f,
+             1.0f,  0.0f,
+             1.0f,  1.0f,
+             0.0f,  1.0f,
+    };
+
+    private float []                projectionMatrix;
+    private float []                modelViewMatrix = {
+            1.0f,0.0f,0.0f,0.0f,
+            0.0f,1.0f,0.0f,0.0f,
+            0.0f,0.0f,1.0f,0.0f,
+            0.0f,0.0f,0.0f,1.0f,
     };
 
     private FloatBuffer             fbTxtVertices       = Buffers.newDirectFloatBuffer(txtVerts);
@@ -49,6 +57,8 @@ public class Renderer implements GLEventListener  {
 
     private int                     textureUniformLocation;
     private int                     uAlpha;
+    private int                     uProjection;
+    private int                     uModelView;
 
     private Keyboard                keyboard;
 
@@ -61,6 +71,113 @@ public class Renderer implements GLEventListener  {
     public Renderer(GLWindow glWindow, Keyboard keyboard) {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
+
+        this.projectionMatrix = setPerspectiveProjection(90f, 1f, 0.999f, 10.0f);
+    }
+
+    public void setIdentityMatrix(float [] matrix) {
+        matrix[ 0] = 1.0f;
+        matrix[ 1] = 0.0f;
+        matrix[ 2] = 0.0f;
+        matrix[ 3] = 0.0f;
+        matrix[ 4] = 0.0f;
+        matrix[ 5] = 1.0f;
+        matrix[ 6] = 0.0f;
+        matrix[ 7] = 0.0f;
+        matrix[ 8] = 0.0f;
+        matrix[ 9] = 0.0f;
+        matrix[10] = 1.0f;
+        matrix[11] = 0.0f;
+        matrix[12] = 0.0f;
+        matrix[13] = 0.0f;
+        matrix[14] = 0.0f;
+        matrix[15] = 1.0f;
+    }
+
+    public void mul4x4(float [] a, float [] b, float [] result) {
+        assert a.length == 16;
+        assert b.length == 16;
+
+         result[ 0] =   a[ 0] * b[ 0] + a[ 1] * b[ 4] + a[ 2] * b[ 8] + a[ 3] * b[12];
+         result[ 1] =   a[ 0] * b[ 1] + a[ 1] * b[ 5] + a[ 2] * b[ 9] + a[ 3] * b[13];
+         result[ 2] =   a[ 0] * b[ 2] + a[ 1] * b[ 6] + a[ 2] * b[10] + a[ 3] * b[14];
+         result[ 3] =   a[ 0] * b[ 3] + a[ 1] * b[ 7] + a[ 2] * b[11] + a[ 3] * b[15];
+         result[ 4] =   a[ 4] * b[ 0] + a[ 5] * b[ 4] + a[ 6] * b[ 8] + a[ 7] * b[12];
+         result[ 5] =   a[ 4] * b[ 1] + a[ 5] * b[ 5] + a[ 6] * b[ 9] + a[ 7] * b[13];
+         result[ 6] =   a[ 4] * b[ 2] + a[ 5] * b[ 6] + a[ 6] * b[10] + a[ 7] * b[14];
+         result[ 7] =   a[ 4] * b[ 3] + a[ 5] * b[ 7] + a[ 6] * b[11] + a[ 7] * b[15];
+         result[ 8] =   a[ 8] * b[ 0] + a[ 9] * b[ 4] + a[10] * b[ 8] + a[11] * b[12];
+         result[ 9] =   a[ 8] * b[ 1] + a[ 9] * b[ 5] + a[10] * b[ 9] + a[11] * b[13];
+         result[10] =   a[ 8] * b[ 2] + a[ 9] * b[ 6] + a[10] * b[10] + a[11] * b[14];
+         result[11] =   a[ 8] * b[ 3] + a[ 9] * b[ 7] + a[10] * b[11] + a[11] * b[15];
+         result[12] =   a[12] * b[ 0] + a[13] * b[ 4] + a[14] * b[ 8] + a[15] * b[12];
+         result[13] =   a[12] * b[ 1] + a[13] * b[ 5] + a[14] * b[ 9] + a[15] * b[13];
+         result[14] =   a[12] * b[ 2] + a[13] * b[ 6] + a[14] * b[10] + a[15] * b[14];
+         result[15] =   a[12] * b[ 3] + a[13] * b[ 7] + a[14] * b[11] + a[15] * b[15];
+
+/*
+        result[ 0] =   a[ 0] * b[ 0] + a[ 0] * b[ 4] + a[ 0] * b[ 8] + a[ 0] * b[12];
+        result[ 1] =   a[ 1] * b[ 0] + a[ 1] * b[ 4] + a[ 1] * b[ 8] + a[ 1] * b[12];
+        result[ 2] =   a[ 2] * b[ 0] + a[ 2] * b[ 4] + a[ 2] * b[ 8] + a[ 2] * b[12];
+        result[ 3] =   a[ 3] * b[ 0] + a[ 3] * b[ 4] + a[ 3] * b[ 8] + a[ 3] * b[12];
+        result[ 4] =   a[ 4] * b[ 1] + a[ 4] * b[ 5] + a[ 4] * b[ 9] + a[ 4] * b[13];
+        result[ 5] =   a[ 5] * b[ 1] + a[ 5] * b[ 5] + a[ 5] * b[ 9] + a[ 5] * b[13];
+        result[ 6] =   a[ 6] * b[ 1] + a[ 6] * b[ 5] + a[ 6] * b[ 9] + a[ 6] * b[13];
+        result[ 7] =   a[ 7] * b[ 1] + a[ 7] * b[ 5] + a[ 7] * b[ 9] + a[ 7] * b[13];
+        result[ 8] =   a[ 9] * b[ 2] + a[ 8] * b[ 6] + a[ 8] * b[10] + a[ 8] * b[14];
+        result[ 9] =   a[ 9] * b[ 2] + a[ 9] * b[ 6] + a[ 9] * b[10] + a[ 9] * b[14];
+        result[10] =   a[10] * b[ 2] + a[10] * b[ 6] + a[10] * b[10] + a[10] * b[14];
+        result[11] =   a[11] * b[ 2] + a[11] * b[ 6] + a[11] * b[10] + a[11] * b[14];
+        result[12] =   a[12] * b[ 3] + a[12] * b[ 7] + a[12] * b[11] + a[12] * b[15];
+        result[13] =   a[13] * b[ 3] + a[13] * b[ 7] + a[13] * b[11] + a[13] * b[15];
+        result[14] =   a[14] * b[ 3] + a[14] * b[ 7] + a[14] * b[11] + a[14] * b[15];
+        result[15] =   a[15] * b[ 3] + a[15] * b[ 7] + a[15] * b[11] + a[15] * b[15];
+*/
+
+    }
+
+    private float [] translateMatrix = new float [] {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    public void translate(float [] matrix, float x, float y, float z) {
+        translateMatrix[12] = x;
+        translateMatrix[13] = y;
+        translateMatrix[14] = z;
+
+        mul4x4(matrix, translateMatrix, matrix);
+    }
+
+    public float [] setPerspectiveProjection(float angle, float imageAspectRatio, float near, float far) {
+        float [] matrix = new float[16];
+
+        float r = (float) (angle / 180f * Math.PI);
+        float f = (float) (1.0f / Math.tan(r / 2.0f));
+
+        matrix[0] = f / imageAspectRatio;
+        matrix[1] = 0.0f;
+        matrix[2] = 0.0f;
+        matrix[3] = 0.0f;
+
+        matrix[4] = 0.0f;
+        matrix[5] = f;
+        matrix[6] = 0.0f;
+        matrix[7] = 0.0f;
+
+        matrix[8] = 0.0f;
+        matrix[9] = 0.0f;
+        matrix[10] = -(far + near) / (far - near);
+        matrix[11] = -1.0f;
+
+        matrix[12] = 0.0f;
+        matrix[13] = 0.0f;
+        matrix[14] = -(2.0f * far * near) / (far - near);
+        matrix[15] = 0.0f;
+
+        return matrix;
     }
 
     public void stop() {
@@ -114,6 +231,8 @@ public class Renderer implements GLEventListener  {
 
         textureUniformLocation = textureProgram.getUniformLocation("u_texture");
         uAlpha = textureProgram.getUniformLocation("alpha");
+        uProjection = textureProgram.getUniformLocation("projection");
+        uModelView = textureProgram.getUniformLocation("modelView");
 
         int[] tmpHandle = new int[1];
         gl.glGenBuffers(1, tmpHandle, 0);
@@ -128,7 +247,7 @@ public class Renderer implements GLEventListener  {
 
         try {
             texture = TextureIO.newTexture(new File("data/eagle.jpg"), false);
-            texture2 = TextureIO.newTexture(new File("data/magma.jpg"), false);
+            texture2 = TextureIO.newTexture(new File("data/dragon.jpg"), false);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -175,6 +294,8 @@ public class Renderer implements GLEventListener  {
         textureProgram.begin();
 
         //gl.glUniform1i(textureUniformLocation, 0);
+        gl.glEnableVertexAttribArray(0);
+        gl.glEnableVertexAttribArray(1);
 
         // Select the VBO, GPU memory data, to use for vertices
         gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, txtVertices);
@@ -189,19 +310,24 @@ public class Renderer implements GLEventListener  {
                 GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
                 48 /* The bound VBO data offset */);
 
-        gl.glEnableVertexAttribArray(0);
-        gl.glEnableVertexAttribArray(1);
+        double time = (System.currentTimeMillis() - start) / 1000.0;
+
+        gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix, 0);
+
+        setIdentityMatrix(modelViewMatrix);
+        //translate(modelViewMatrix, 0, 0, 1);
 
         gl.glUniform1f(uAlpha, 1.0f);
+        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix,  0);
+
         texture.bind(gl);
 
         gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle
 
-        double time = (System.currentTimeMillis() - start) / 1000.0;
         float alpha = (float) Math.abs(Math.sin(time));
-        logger.info("Alpha: {}", alpha);
 
         gl.glUniform1f(uAlpha, alpha);
+        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix,  0);
 
         texture2.bind(gl);
 
