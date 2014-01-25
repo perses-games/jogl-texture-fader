@@ -23,6 +23,8 @@ public class Renderer implements GLEventListener  {
     private volatile boolean stopped    = false;
     private volatile boolean dirty      = true;
 
+    private float aspect;
+
     private ShaderProgram textureProgram;
 
     private final GLWindow glWindow;
@@ -72,10 +74,13 @@ public class Renderer implements GLEventListener  {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
 
-        this.projectionMatrix = setPerspectiveProjection(90f, 1f, 0.999f, 50.0f);
+        aspect = 1920f/1080f;
+        this.projectionMatrix = setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
     }
 
     public void setIdentityMatrix(float [] matrix) {
+        assert matrix.length == 16;
+
         matrix[ 0] = 1.0f;
         matrix[ 1] = 0.0f;
         matrix[ 2] = 0.0f;
@@ -97,6 +102,7 @@ public class Renderer implements GLEventListener  {
     public void mul4x4(float [] a, float [] b, float [] result) {
         assert a.length == 16;
         assert b.length == 16;
+        assert result.length == 16;
 
         result[ 0] =   a[ 0] * b[ 0] + a[ 1] * b[ 4] + a[ 2] * b[ 8] + a[ 3] * b[12];
         result[ 1] =   a[ 0] * b[ 1] + a[ 1] * b[ 5] + a[ 2] * b[ 9] + a[ 3] * b[13];
@@ -124,11 +130,84 @@ public class Renderer implements GLEventListener  {
     };
 
     public void translate(float [] matrix, float x, float y, float z) {
+        assert matrix.length == 16;
+
         translateMatrix[12] = x;
         translateMatrix[13] = y;
         translateMatrix[14] = z;
 
         mul4x4(matrix, translateMatrix, matrix);
+    }
+
+    private float [] scaleMatrix = new float [] {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    public void scale(float [] matrix, float x, float y, float z) {
+        assert matrix.length == 16;
+
+        scaleMatrix[0] = x;
+        scaleMatrix[5] = y;
+        scaleMatrix[10] = z;
+
+        mul4x4(matrix, scaleMatrix, matrix);
+    }
+
+    private float [] rotateXMatrix = new float [] {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    public void rotateX(float [] matrix, float angle) {
+        assert matrix.length == 16;
+
+        rotateXMatrix[5] = (float)Math.cos(angle);
+        rotateXMatrix[6] = (float)-Math.sin(angle);
+        rotateXMatrix[9] = (float)Math.sin(angle);
+        rotateXMatrix[10] = (float)Math.cos(angle);
+
+        mul4x4(matrix, rotateXMatrix, matrix);
+    }
+
+    private float [] rotateYMatrix = new float [] {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    public void rotateY(float [] matrix, float angle) {
+        assert matrix.length == 16;
+
+        rotateYMatrix[ 0] = (float)Math.cos(angle);
+        rotateYMatrix[ 2] = (float)Math.sin(angle);
+        rotateYMatrix[ 8] = (float)-Math.sin(angle);
+        rotateYMatrix[10] = (float)Math.cos(angle);
+
+        mul4x4(matrix, rotateYMatrix, matrix);
+    }
+
+    private float [] rotateZMatrix = new float [] {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    public void rotateZ(float [] matrix, float angle) {
+        assert matrix.length == 16;
+
+        rotateZMatrix[ 0] = (float)Math.cos(angle);
+        rotateZMatrix[ 1] = (float)Math.sin(angle);
+        rotateZMatrix[ 4] = (float)-Math.sin(angle);
+        rotateZMatrix[ 5] = (float)Math.cos(angle);
+
+        mul4x4(matrix, rotateZMatrix, matrix);
     }
 
     public float [] setPerspectiveProjection(float angle, float imageAspectRatio, float near, float far) {
@@ -295,7 +374,11 @@ public class Renderer implements GLEventListener  {
         gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix, 0);
 
         setIdentityMatrix(modelViewMatrix);
-        translate(modelViewMatrix, (float)Math.sin(time*3), (float)Math.cos(time*5), (float) (-2 + Math.sin(time)));
+        //rotateZ(modelViewMatrix, (float)time);
+        scale(modelViewMatrix, aspect, 1, 1);
+        translate(modelViewMatrix, 0, 0, -1);
+
+        //translate(modelViewMatrix, 0, 0, -1);
 
         gl.glUniform1f(uAlpha, 1.0f);
         gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix,  0);

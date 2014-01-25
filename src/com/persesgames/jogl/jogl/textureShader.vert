@@ -19,5 +19,5 @@ varying   vec2  v_texCoords;
 
 void main(void) {
     v_texCoords = a_texCoord;
-    gl_Position =  projection * modelView * attribute_Position;
+    gl_Position = projection * modelView * attribute_Position;
 }
