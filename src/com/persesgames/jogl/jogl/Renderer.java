@@ -28,10 +28,10 @@ public class Renderer implements GLEventListener  {
     private final GLWindow glWindow;
 
     private float[]                 txtVerts = {
-            -1.0f, -1.0f,   -2.0f,
-             1.0f, -1.0f,   -2.0f,
-             1.0f,  1.0f,   -2.0f,
-            -1.0f,  1.0f,   -2.0f,
+            -1.0f, -1.0f,   0.0f,
+             1.0f, -1.0f,   0.0f,
+             1.0f,  1.0f,   0.0f,
+            -1.0f,  1.0f,   0.0f,
              0.0f,  0.0f,
              1.0f,  0.0f,
              1.0f,  1.0f,
@@ -72,7 +72,7 @@ public class Renderer implements GLEventListener  {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
 
-        this.projectionMatrix = setPerspectiveProjection(90f, 1f, 0.999f, 10.0f);
+        this.projectionMatrix = setPerspectiveProjection(90f, 1f, 0.999f, 50.0f);
     }
 
     public void setIdentityMatrix(float [] matrix) {
@@ -315,7 +315,7 @@ public class Renderer implements GLEventListener  {
         gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix, 0);
 
         setIdentityMatrix(modelViewMatrix);
-        //translate(modelViewMatrix, 0, 0, 1);
+        translate(modelViewMatrix, (float)Math.sin(time*3), (float)Math.cos(time*5), (float) (-2 + Math.sin(time)));
 
         gl.glUniform1f(uAlpha, 1.0f);
         gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix,  0);
