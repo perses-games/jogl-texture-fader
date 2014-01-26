@@ -13,15 +13,21 @@ public class TestFader extends Fader {
     private Matrix dest = new Matrix();
 
     @Override
-    public void init() {
+    public void init(float aspect) {
         time = 0;
+
+        source.setToIdentity();
+        source.scale(aspect, 1, 1);
         source.translate(0,0,-1);
+
+        dest.setToIdentity();
+        dest.scale(aspect, 1, 1);
         dest.translate(0,0,-1);
     }
 
     @Override
     public void update(float time) {
-        this.time += time;
+        this.time += time / 4f;
     }
 
     @Override

@@ -67,10 +67,10 @@ public class Renderer implements GLEventListener  {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
         this.fader = new TestFader();
-        this.fader.init();
 
         aspect = 1920f/1080f;
         this.projectionMatrix.setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
+        this.fader.init(aspect);
     }
 
     public void stop() {

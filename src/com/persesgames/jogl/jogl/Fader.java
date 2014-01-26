@@ -7,7 +7,7 @@ package com.persesgames.jogl.jogl;
  */
 public abstract class Fader {
 
-    public abstract void init();
+    public abstract void init(float aspect);
     public abstract void update(float time);
     public abstract Matrix getSourceModelViewMatrix();
     public abstract float getSourceAlpha();
