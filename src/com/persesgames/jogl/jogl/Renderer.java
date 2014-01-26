@@ -23,6 +23,8 @@ public class Renderer implements GLEventListener  {
     private volatile boolean stopped    = false;
     private volatile boolean dirty      = true;
 
+    private float aspect;
+
     private ShaderProgram textureProgram;
 
     private final GLWindow glWindow;
@@ -38,6 +40,9 @@ public class Renderer implements GLEventListener  {
             0.0f, 1.0f,
     };
 
+    private Matrix                  projectionMatrix = new Matrix();
+    private Matrix                  modelViewMatrix  = new Matrix();
+
     private FloatBuffer             fbTxtVertices       = Buffers.newDirectFloatBuffer(txtVerts);
 
     private int                     width = 100, height = 100;
@@ -49,6 +54,8 @@ public class Renderer implements GLEventListener  {
 
     private int                     textureUniformLocation;
     private int                     uAlpha;
+    private int                     uProjection;
+    private int                     uModelView;
 
     private Keyboard                keyboard;
 
@@ -61,6 +68,9 @@ public class Renderer implements GLEventListener  {
     public Renderer(GLWindow glWindow, Keyboard keyboard) {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
+
+        aspect = 1920f/1080f;
+        this.projectionMatrix.setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
     }
 
     public void stop() {
@@ -114,6 +124,8 @@ public class Renderer implements GLEventListener  {
 
         textureUniformLocation = textureProgram.getUniformLocation("u_texture");
         uAlpha = textureProgram.getUniformLocation("alpha");
+        uProjection = textureProgram.getUniformLocation("projection");
+        uModelView = textureProgram.getUniformLocation("modelView");
 
         int[] tmpHandle = new int[1];
         gl.glGenBuffers(1, tmpHandle, 0);
@@ -128,7 +140,7 @@ public class Renderer implements GLEventListener  {
 
         try {
             texture = TextureIO.newTexture(new File("data/eagle.jpg"), false);
-            texture2 = TextureIO.newTexture(new File("data/magma.jpg"), false);
+            texture2 = TextureIO.newTexture(new File("data/dragon.jpg"), false);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -175,6 +187,8 @@ public class Renderer implements GLEventListener  {
         textureProgram.begin();
 
         //gl.glUniform1i(textureUniformLocation, 0);
+        gl.glEnableVertexAttribArray(0);
+        gl.glEnableVertexAttribArray(1);
 
         // Select the VBO, GPU memory data, to use for vertices
         gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, txtVertices);
@@ -189,19 +203,28 @@ public class Renderer implements GLEventListener  {
                 GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
                 48 /* The bound VBO data offset */);
 
-        gl.glEnableVertexAttribArray(0);
-        gl.glEnableVertexAttribArray(1);
+        double time = (System.currentTimeMillis() - start) / 1000.0;
+
+        gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix.get(), 0);
+
+        modelViewMatrix.setToIdentity();
+        modelViewMatrix.scale(aspect, 1, 1);
+        modelViewMatrix.rotateZ((float)time*3);
+        modelViewMatrix.translate(0, 0, -2);
+        //modelViewMatrix.scale(aspect, 1, 1);
 
         gl.glUniform1f(uAlpha, 1.0f);
+        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
+
         texture.bind(gl);
 
         gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle
 
-        double time = (System.currentTimeMillis() - start) / 1000.0;
         float alpha = (float) Math.abs(Math.sin(time));
         //logger.info("Alpha: {}", alpha);
 
         gl.glUniform1f(uAlpha, alpha);
+        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
 
         texture2.bind(gl);
 
