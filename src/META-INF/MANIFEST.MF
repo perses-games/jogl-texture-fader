@@ -2,4 +2,4 @@ Manifest-Version: 1.0
 Class-Path: gluegen-rt.jar jogl-all-noawt.jar slf4j-api-1.7.5.jar slf4
  j-simple-1.7.2.jar gluegen-rt-natives-linux-armv6.jar jogl-all-native
  s-linux-armv6.jar
-Main-Class: com.persesgames.jogl.jogl.TestJogl
+Main-Class: com.persesgames.jogl.TestJogl

@@ -1,4 +1,4 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

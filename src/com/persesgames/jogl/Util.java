@@ -1,4 +1,4 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

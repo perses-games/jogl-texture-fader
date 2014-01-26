@@ -1,11 +1,11 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 /**
  * User: rnentjes
  * Date: 1/26/14
  * Time: 4:28 PM
  */
-public class ZoomInFader extends Fader {
+public class RotateInFader2 extends Fader {
 
     private float aspect;
     private float time = 0;
@@ -15,7 +15,7 @@ public class ZoomInFader extends Fader {
 
     private float z;
 
-    public ZoomInFader(float aspect) {
+    public RotateInFader2(float aspect) {
         this.aspect = aspect;
     }
 
@@ -23,13 +23,13 @@ public class ZoomInFader extends Fader {
     public void reset() {
         time = 0;
 
-        z = -50.0f;
+        z = -10.8f;
     }
 
     @Override
     public void update(float time) {
         this.time += time;
-        this.z += time * 100;
+        this.z += time * 20;
 
         if (z > -1) {
             z = -1;
@@ -51,8 +51,17 @@ public class ZoomInFader extends Fader {
 
     @Override
     public Matrix getDestinationModelViewMatrix() {
+        float angle = z + 1;
+
+        angle = -(angle / 49); // angle van 1 => 0
+        angle = angle * 5;
+        angle = (float) (angle * Math.PI / 2);
+
         dest.setToIdentity();
         dest.scale(aspect, 1, 1);
+        dest.rotateX(angle);
+        dest.rotateY(angle);
+//        dest.rotateZ(angle);
         dest.translate(0,0,z);
 
         return dest;

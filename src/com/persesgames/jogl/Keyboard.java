@@ -1,4 +1,4 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;

@@ -1,49 +1,38 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 /**
  * User: rnentjes
  * Date: 1/26/14
  * Time: 4:28 PM
  */
-public class SlideFader extends Fader {
-
-    public enum SlideDirection {
-        UP,
-        LEFT,
-        DOWN,
-        RIGHT;
-    }
+public class ZoomInFader extends Fader {
 
     private float aspect;
     private float time = 0;
 
-    private SlideDirection direction;
-
     private Matrix source = new Matrix();
     private Matrix dest = new Matrix();
 
-    private float xoffset, yoffset;
+    private float z;
 
-    public SlideFader(float aspect, SlideDirection direction) {
+    public ZoomInFader(float aspect) {
         this.aspect = aspect;
-        this.direction = direction;
     }
 
     @Override
     public void reset() {
         time = 0;
 
-        xoffset = -2 * aspect;
-        yoffset = 0;
+        z = -50.0f;
     }
 
     @Override
     public void update(float time) {
         this.time += time;
-        this.xoffset += time * 4;
+        this.z += time * 100;
 
-        if (xoffset > 0) {
-            xoffset = 0;
+        if (z > -1) {
+            z = -1;
         }
     }
 
@@ -51,7 +40,7 @@ public class SlideFader extends Fader {
     public Matrix getSourceModelViewMatrix() {
         source.setToIdentity();
         source.scale(aspect, 1, 1);
-        source.translate(xoffset + 2 * aspect,0,-1);
+        source.translate(0,0,-1);
 
         return source;
     }
@@ -64,17 +53,21 @@ public class SlideFader extends Fader {
     public Matrix getDestinationModelViewMatrix() {
         dest.setToIdentity();
         dest.scale(aspect, 1, 1);
-        dest.translate(xoffset,0,-1);
+        dest.translate(0,0,z);
 
         return dest;
     }
 
     public float getDestinationAlpha() {
-        return 1f;
+        if (z > -5) {
+            return 1f;
+        } else {
+            return (z + 65f) / 60;
+        }
     }
 
     @Override
     public boolean done() {
-        return xoffset == 0;
+        return z == -1;
     }
 }

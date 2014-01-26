@@ -1,4 +1,4 @@
-package com.persesgames.jogl.jogl;
+package com.persesgames.jogl;
 
 import com.jogamp.newt.event.WindowAdapter;
 import com.jogamp.newt.event.WindowEvent;
