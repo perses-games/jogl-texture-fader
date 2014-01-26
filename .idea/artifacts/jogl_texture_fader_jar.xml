@@ -1,0 +1,24 @@
+<component name="ArtifactManager">
+  <artifact build-on-make="true" name="jogl-texture-fader:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/jogl_texture_fader_jar</output-path>
+    <root id="root">
+      <element id="archive" name="jogl-texture-fader.jar">
+        <element id="module-output" name="jogl-texture-fader" />
+      </element>
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-noawt.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/slf4j-api-1.7.5.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/slf4j-simple-1.7.2.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-natives-linux-i586.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-natives-linux-amd64.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt-natives-linux-i586.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-natives-windows-i586.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt-natives-linux-amd64.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-natives-windows-amd64.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt-natives-windows-i586.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt-natives-windows-amd64.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/jogl-all-natives-macosx-universal.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/lib/gluegen-rt-natives-macosx-universal.jar" />
+    </root>
+  </artifact>
+</component>

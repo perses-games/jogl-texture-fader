@@ -199,7 +199,7 @@ public class Renderer implements GLEventListener  {
 
         double time = (System.currentTimeMillis() - start) / 1000.0;
         float alpha = (float) Math.abs(Math.sin(time));
-        logger.info("Alpha: {}", alpha);
+        //logger.info("Alpha: {}", alpha);
 
         gl.glUniform1f(uAlpha, alpha);
 
