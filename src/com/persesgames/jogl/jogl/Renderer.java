@@ -143,8 +143,8 @@ public class Renderer implements GLEventListener  {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, fbTxtVertices.limit() * 4, fbTxtVertices, GL.GL_STATIC_DRAW);
 
         try {
-            texture = TextureIO.newTexture(new File("data/dragons.jpg"), false);
-            texture2 = TextureIO.newTexture(new File("data/eagles.jpg"), false);
+            texture2 = TextureIO.newTexture(new File("data/dragons.jpg"), false);
+            texture = TextureIO.newTexture(new File("data/magma.jpg"), false);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -213,6 +213,7 @@ public class Renderer implements GLEventListener  {
 
         if (fader == null || fader.done()) {
             modelViewMatrix.setToIdentity();
+            modelViewMatrix.scale(aspect, 1, 1);
             modelViewMatrix.translate(0,0,-1);
 
             gl.glUniform1f(uAlpha, 1.0f);

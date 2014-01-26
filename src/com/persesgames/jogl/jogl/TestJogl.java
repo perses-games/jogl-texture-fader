@@ -24,7 +24,7 @@ public class TestJogl {
     public TestJogl() {
         GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL2ES2));
 
-        caps.setBackgroundOpaque(false);
+        caps.setBackgroundOpaque(true);
         caps.setDoubleBuffered(true);
 
         GLWindow glWindow = GLWindow.create(caps);
