@@ -50,10 +50,6 @@ public class Matrix {
             0.0f, 0.0f, 0.0f, 1.0f,
     };
 
-    public Matrix() {
-        setToIdentity();
-    }
-
     public float [] get() {
         return matrix;
     }

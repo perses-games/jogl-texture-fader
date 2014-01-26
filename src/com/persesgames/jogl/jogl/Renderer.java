@@ -30,14 +30,10 @@ public class Renderer implements GLEventListener  {
     private final GLWindow glWindow;
 
     private float[]                 txtVerts = {
-            -1.0f, -1.0f,  0.0f,
-             1.0f, -1.0f,  0.0f,
-             1.0f,  1.0f,  0.0f,
-            -1.0f,  1.0f,  0.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            -1.0f, -1.0f,
+            -1.0f,  1.0f,
+             1.0f,  1.0f,
+             1.0f,  -1.0f,
     };
 
     private Matrix                  projectionMatrix = new Matrix();
@@ -45,14 +41,14 @@ public class Renderer implements GLEventListener  {
 
     private FloatBuffer             fbTxtVertices       = Buffers.newDirectFloatBuffer(txtVerts);
 
-    private int                     width = 100, height = 100;
+    private int                     width = 256, height = 256;
 
     private int                     txtVertices;
 
     private Texture                 texture;
     private Texture                 texture2;
 
-    private int                     textureUniformLocation;
+    private int                     uTexture;
     private int                     uAlpha;
     private int                     uProjection;
     private int                     uModelView;
@@ -65,9 +61,13 @@ public class Renderer implements GLEventListener  {
 
     private long                    start = System.currentTimeMillis();
 
+    private Fader                   fader;
+
     public Renderer(GLWindow glWindow, Keyboard keyboard) {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
+        this.fader = new TestFader();
+        this.fader.init();
 
         aspect = 1920f/1080f;
         this.projectionMatrix.setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
@@ -113,6 +113,7 @@ public class Renderer implements GLEventListener  {
         logger.info("GL_VENDOR: " + gl.glGetString(GL.GL_VENDOR));
         logger.info("GL_RENDERER: " + gl.glGetString(GL.GL_RENDERER));
         logger.info("GL_VERSION: " + gl.glGetString(GL.GL_VERSION));
+        logger.info("GL_GLSL_VERSION: " + gl.glGetString(GL2.GL_SHADING_LANGUAGE_VERSION));
 
         int [] result = new int[1];
         gl.glGetIntegerv(GL2.GL_MAX_VERTEX_ATTRIBS, result, 0);
@@ -122,7 +123,10 @@ public class Renderer implements GLEventListener  {
 
         textureProgram = new ShaderProgram(gl, Util.loadAsText(getClass(), "textureShader.vert"), Util.loadAsText(getClass(), "textureShader.frag"));
 
-        textureUniformLocation = textureProgram.getUniformLocation("u_texture");
+        textureProgram.bindAttributeLocation(1, "attribute_Position");
+        textureProgram.bindAttributeLocation(0, "a_texCoord");
+
+        uTexture = textureProgram.getUniformLocation("u_texture");
         uAlpha = textureProgram.getUniformLocation("alpha");
         uProjection = textureProgram.getUniformLocation("projection");
         uModelView = textureProgram.getUniformLocation("modelView");
@@ -136,11 +140,11 @@ public class Renderer implements GLEventListener  {
         gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, txtVertices);
 
         // transfer data to VBO, this perform the copy of data from CPU -> GPU memory
-        gl.glBufferData(GL.GL_ARRAY_BUFFER, txtVerts.length * 4, fbTxtVertices, GL.GL_STATIC_DRAW);
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, fbTxtVertices.limit() * 4, fbTxtVertices, GL.GL_STATIC_DRAW);
 
         try {
-            texture = TextureIO.newTexture(new File("data/eagle.jpg"), false);
-            texture2 = TextureIO.newTexture(new File("data/dragon.jpg"), false);
+            texture = TextureIO.newTexture(new File("data/dragons.jpg"), false);
+            texture2 = TextureIO.newTexture(new File("data/eagles.jpg"), false);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -148,16 +152,20 @@ public class Renderer implements GLEventListener  {
         // "Bind" the newly created texture : all future texture functions will modify this texture
         texture.bind(gl);
 
+        logger.info("Texture handles {},{}", texture.getTextureObject(), texture2.getTextureObject());
+
         // Poor filtering. Needed !
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
         // "Bind" the newly created texture : all future texture functions will modify this texture
 
         texture2.bind(gl);
 
         // Poor filtering. Needed !
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
+        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
+
+        gl.glViewport(0, 0, width, height);
     }
 
     @Override
@@ -174,13 +182,14 @@ public class Renderer implements GLEventListener  {
 
         /* Draw to screen */
 
-        gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
+        //gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, width, height);
 
         // Clear screen
-        gl.glClearColor(0.0f, 0.0f, 0.0f, 1f);
+        gl.glClearColor(0.3f, 0.0f, 0.3f, 0.5f);
         gl.glClear(GL2ES2.GL_COLOR_BUFFER_BIT);
 
+        gl.glEnable(GL.GL_TEXTURE_2D);
         gl.glEnable(GL2ES2.GL_BLEND);
         gl.glBlendFunc(GL2ES2.GL_SRC_ALPHA, GL2ES2.GL_ONE_MINUS_SRC_ALPHA);
 
@@ -188,47 +197,76 @@ public class Renderer implements GLEventListener  {
 
         //gl.glUniform1i(textureUniformLocation, 0);
         gl.glEnableVertexAttribArray(0);
-        gl.glEnableVertexAttribArray(1);
+        //gl.glEnableVertexAttribArray(1);
 
         // Select the VBO, GPU memory data, to use for vertices
         gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, txtVertices);
 
         // Associate Vertex attribute 0 with the last bound VBO
-        gl.glVertexAttribPointer(0 /* the vertex attribute */, 3,
+        gl.glVertexAttribPointer(0 /* the vertex attribute */, 2,
                 GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
                 0 /* The bound VBO data offset */);
-
-        // Associate Vertex attribute 0 with the last bound VBO
-        gl.glVertexAttribPointer(1 /* the vertex attribute */, 2,
-                GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
-                48 /* The bound VBO data offset */);
 
         double time = (System.currentTimeMillis() - start) / 1000.0;
 
         gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix.get(), 0);
 
-        modelViewMatrix.setToIdentity();
-        modelViewMatrix.scale(aspect, 1, 1);
-        modelViewMatrix.rotateZ((float)time*3);
-        modelViewMatrix.translate(0, 0, -2);
-        //modelViewMatrix.scale(aspect, 1, 1);
+        if (fader == null || fader.done()) {
+            modelViewMatrix.setToIdentity();
+            modelViewMatrix.translate(0,0,-1);
 
-        gl.glUniform1f(uAlpha, 1.0f);
-        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
+            gl.glUniform1f(uAlpha, 1.0f);
+            gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
 
-        texture.bind(gl);
+            texture.bind(gl);
 
-        gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle
+            gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle fan
+        } else {
+            fader.update(0.016f);
 
-        float alpha = (float) Math.abs(Math.sin(time));
-        //logger.info("Alpha: {}", alpha);
+            gl.glUniform1f(uAlpha, fader.getSourceAlpha());
+            gl.glUniformMatrix4fv(uModelView , 1, false, fader.getSourceModelViewMatrix().get(),  0);
 
-        gl.glUniform1f(uAlpha, alpha);
-        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
+            texture.bind(gl);
 
-        texture2.bind(gl);
+            gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
 
-        gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle
+            gl.glUniform1f(uAlpha, fader.getDestinationAlpha());
+            gl.glUniformMatrix4fv(uModelView , 1, false, fader.getDestinationModelViewMatrix().get(),  0);
+
+            texture2.bind(gl);
+
+            gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
+
+            if (fader.done()) {
+                Texture tmp = texture;
+                texture = texture2;
+                texture2 = tmp;
+            }
+        }
+
+//        modelViewMatrix.setToIdentity();
+//        modelViewMatrix.scale(aspect, 1, 1);
+//        modelViewMatrix.rotateZ((float)time*3);
+//        modelViewMatrix.translate(0, 0, (float) (-2 + Math.sin(time)));
+//        //modelViewMatrix.scale(aspect, 1, 1);
+//
+//        gl.glUniform1f(uAlpha, 1.0f);
+//        gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
+//
+//        texture.bind(gl);
+//
+//        gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle fan
+
+//        float alpha = (float) Math.abs(Math.sin(time));
+//        //logger.info("Alpha: {}", alpha);
+//
+//        gl.glUniform1f(uAlpha, alpha);
+//        gl.glUniformMatrix4fv(uModelView, 1, false, modelViewMatrix.get(), 0);
+//
+//        texture2.bind(gl);
+//
+//        gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle
 
         gl.glDisableVertexAttribArray(1);
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory

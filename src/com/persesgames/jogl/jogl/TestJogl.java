@@ -24,6 +24,7 @@ public class TestJogl {
     public TestJogl() {
         GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL2ES2));
 
+        caps.setBackgroundOpaque(false);
         caps.setDoubleBuffered(true);
 
         GLWindow glWindow = GLWindow.create(caps);
@@ -32,9 +33,9 @@ public class TestJogl {
 
         glWindow.setSize(1920, 1080);
 
-        glWindow.setFullscreen(false);
-        glWindow.setUndecorated(false);
-        glWindow.setPointerVisible(true);
+        glWindow.setFullscreen(true);
+        glWindow.setUndecorated(true);
+        glWindow.setPointerVisible(false);
         glWindow.setVisible(true);
 
         Keyboard keyboard = new Keyboard();
