@@ -45,8 +45,13 @@ public class Renderer implements GLEventListener  {
 
     private int                     txtVertices;
 
-    private Texture                 texture;
-    private Texture                 texture2;
+    private Texture                 source;
+    private Texture                 dest;
+    private Texture []              textures = new Texture[4];
+    private int                     currentDest = 1;
+
+    private Fader []                faders;
+    private int                     currentFader = 0;
 
     private int                     uTexture;
     private int                     uAlpha;
@@ -61,16 +66,22 @@ public class Renderer implements GLEventListener  {
 
     private long                    start = System.currentTimeMillis();
 
-    private Fader                   fader;
-
     public Renderer(GLWindow glWindow, Keyboard keyboard) {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
-        this.fader = new TestFader();
 
         aspect = 1920f/1080f;
         this.projectionMatrix.setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
-        this.fader.init(aspect);
+
+        faders = new Fader[5];
+
+        faders[0] = new SlideFader(aspect, SlideFader.SlideDirection.RIGHT);
+        faders[1] = new ZoomInFader(aspect);
+        faders[2] = new RotateInFader(aspect);
+        faders[3] = new RotateInFader2(aspect);
+        faders[4] = new TestFader(aspect);
+
+        this.faders[currentFader].reset();
     }
 
     public void stop() {
@@ -143,27 +154,35 @@ public class Renderer implements GLEventListener  {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, fbTxtVertices.limit() * 4, fbTxtVertices, GL.GL_STATIC_DRAW);
 
         try {
-            texture2 = TextureIO.newTexture(new File("data/dragons.jpg"), false);
-            texture = TextureIO.newTexture(new File("data/magma.jpg"), false);
+            long start1 = System.nanoTime();
+            textures[0] = TextureIO.newTexture(new File("data/magma.jpg"), false);
+            long start2 = System.nanoTime();
+            textures[1] = TextureIO.newTexture(new File("data/dragons.jpg"), false);
+            long start3 = System.nanoTime();
+            logger.info("Load texture 1: {}ms", (start2-start1) / 1000000f);
+            logger.info("Load texture 2: {}ms", (start3-start2) / 1000000f);
+             start1 = System.nanoTime();
+            textures[2] = TextureIO.newTexture(new File("data/eagles.jpg"), false);
+             start2 = System.nanoTime();
+            textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
+             start3 = System.nanoTime();
+            logger.info("Load texture 3: {}ms", (start2-start1) / 1000000f);
+            logger.info("Load texture 4: {}ms", (start3-start2) / 1000000f);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
 
-        // "Bind" the newly created texture : all future texture functions will modify this texture
-        texture.bind(gl);
+        for (int i = 0; i < textures.length; i++) {
+            // "Bind" the newly created texture : all future texture functions will modify this texture
+            textures[i].bind(gl);
 
-        logger.info("Texture handles {},{}", texture.getTextureObject(), texture2.getTextureObject());
+            // Poor filtering. Needed !
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
+        }
 
-        // Poor filtering. Needed !
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
-        // "Bind" the newly created texture : all future texture functions will modify this texture
-
-        texture2.bind(gl);
-
-        // Poor filtering. Needed !
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
-        gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
+        source = textures[0];
+        dest = textures[currentDest];
 
         gl.glViewport(0, 0, width, height);
     }
@@ -177,6 +196,16 @@ public class Renderer implements GLEventListener  {
     public void display(GLAutoDrawable drawable) {
         long frameStart = System.nanoTime();
         //logger.info("display+" + System.currentTimeMillis());
+
+        if (faders[currentFader] != null && faders[currentFader].done() && keyboard.isPressed(KeyEvent.VK_SPACE)) {
+            currentDest++;
+            currentDest = currentDest % textures.length;
+            dest = textures[currentDest];
+
+            currentFader++;
+            currentFader = currentFader % faders.length;
+            faders[currentFader].reset();
+        }
 
         GL2ES2 gl = drawable.getGL().getGL2ES2();
 
@@ -211,7 +240,7 @@ public class Renderer implements GLEventListener  {
 
         gl.glUniformMatrix4fv(uProjection, 1, false, projectionMatrix.get(), 0);
 
-        if (fader == null || fader.done()) {
+        if (faders[currentFader] == null || faders[currentFader].done()) {
             modelViewMatrix.setToIdentity();
             modelViewMatrix.scale(aspect, 1, 1);
             modelViewMatrix.translate(0,0,-1);
@@ -219,30 +248,28 @@ public class Renderer implements GLEventListener  {
             gl.glUniform1f(uAlpha, 1.0f);
             gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
 
-            texture.bind(gl);
+            source.bind(gl);
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle fan
         } else {
-            fader.update(0.016f);
+            faders[currentFader].update(0.016f);
 
-            gl.glUniform1f(uAlpha, fader.getSourceAlpha());
-            gl.glUniformMatrix4fv(uModelView , 1, false, fader.getSourceModelViewMatrix().get(),  0);
+            gl.glUniform1f(uAlpha, faders[currentFader].getSourceAlpha());
+            gl.glUniformMatrix4fv(uModelView , 1, false, faders[currentFader].getSourceModelViewMatrix().get(),  0);
 
-            texture.bind(gl);
-
-            gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
-
-            gl.glUniform1f(uAlpha, fader.getDestinationAlpha());
-            gl.glUniformMatrix4fv(uModelView , 1, false, fader.getDestinationModelViewMatrix().get(),  0);
-
-            texture2.bind(gl);
+            source.bind(gl);
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
 
-            if (fader.done()) {
-                Texture tmp = texture;
-                texture = texture2;
-                texture2 = tmp;
+            gl.glUniform1f(uAlpha, faders[currentFader].getDestinationAlpha());
+            gl.glUniformMatrix4fv(uModelView , 1, false, faders[currentFader].getDestinationModelViewMatrix().get(),  0);
+
+            dest.bind(gl);
+
+            gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
+
+            if (faders[currentFader].done()) {
+                source = dest;
             }
         }
 

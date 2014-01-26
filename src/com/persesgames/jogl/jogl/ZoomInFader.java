@@ -5,7 +5,7 @@ package com.persesgames.jogl.jogl;
  * Date: 1/26/14
  * Time: 4:28 PM
  */
-public class TestFader extends Fader {
+public class ZoomInFader extends Fader {
 
     private float aspect;
     private float time = 0;
@@ -13,7 +13,9 @@ public class TestFader extends Fader {
     private Matrix source = new Matrix();
     private Matrix dest = new Matrix();
 
-    public TestFader(float aspect) {
+    private float z;
+
+    public ZoomInFader(float aspect) {
         this.aspect = aspect;
     }
 
@@ -21,22 +23,25 @@ public class TestFader extends Fader {
     public void reset() {
         time = 0;
 
-        source.setToIdentity();
-        source.scale(aspect, 1, 1);
-        source.translate(0,0,-1);
-
-        dest.setToIdentity();
-        dest.scale(aspect, 1, 1);
-        dest.translate(0,0,-1);
+        z = -50.0f;
     }
 
     @Override
     public void update(float time) {
         this.time += time;
+        this.z += time * 100;
+
+        if (z > -1) {
+            z = -1;
+        }
     }
 
     @Override
     public Matrix getSourceModelViewMatrix() {
+        source.setToIdentity();
+        source.scale(aspect, 1, 1);
+        source.translate(0,0,-1);
+
         return source;
     }
 
@@ -46,15 +51,23 @@ public class TestFader extends Fader {
 
     @Override
     public Matrix getDestinationModelViewMatrix() {
+        dest.setToIdentity();
+        dest.scale(aspect, 1, 1);
+        dest.translate(0,0,z);
+
         return dest;
     }
 
     public float getDestinationAlpha() {
-        return (float) Math.sin(time);
+        if (z > -5) {
+            return 1f;
+        } else {
+            return (z + 65f) / 60;
+        }
     }
 
     @Override
     public boolean done() {
-        return time > Math.PI / 2;
+        return z == -1;
     }
 }
