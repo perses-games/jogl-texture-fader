@@ -3,6 +3,7 @@ package com.persesgames.jogl;
 import com.jogamp.newt.event.WindowAdapter;
 import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
+import com.persesgames.web.WebServer;
 
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
@@ -13,10 +14,14 @@ import javax.media.opengl.GLProfile;
  */
 public class TestJogl {
 
-    public static void main(String [] args) {
+    public static void main(String [] args) throws Exception {
+        WebServer server = new WebServer(8901);
+
         TestJogl test = new TestJogl();
 
         test.run();
+
+        server.stop();
     }
 
     private final Renderer renderer;

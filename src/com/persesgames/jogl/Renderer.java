@@ -4,13 +4,17 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.media.opengl.*;
-import java.io.File;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.FloatBuffer;
 
 /**
@@ -115,6 +119,21 @@ public class Renderer implements GLEventListener  {
         Renderer.this.glWindow.destroy();
     }
 
+    public Texture loadTexture(GL gl, URL image1) throws IOException {
+        URLConnection yc = null;
+
+        yc = image1.openConnection();
+        //textures[0] = TextureIO.newTexture(image1, false, "jpg");
+
+        try (InputStream in = new BufferedInputStream(yc.getInputStream())) {
+            TextureData data = TextureIO.newTextureData(GLProfile.getGL2ES2(), in, false, "jpg");
+            Texture result = new Texture(gl, data);
+
+            return result;
+        }
+    }
+
+
     @Override
     public void init(GLAutoDrawable drawable) {
         GL2ES2 gl = drawable.getGL().getGL2ES2();
@@ -154,20 +173,30 @@ public class Renderer implements GLEventListener  {
         gl.glBufferData(GL.GL_ARRAY_BUFFER, fbTxtVertices.limit() * 4, fbTxtVertices, GL.GL_STATIC_DRAW);
 
         try {
+
             long start1 = System.nanoTime();
-            textures[0] = TextureIO.newTexture(new File("data/magma.jpg"), false);
+            textures[0] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/magma.jpg"));
+            //textures[0] = TextureIO.newTexture(new File("data/magma.jpg"), false);
             long start2 = System.nanoTime();
-            textures[1] = TextureIO.newTexture(new File("data/dragons.jpg"), false);
+            textures[1] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/dragons.jpg"));
+            //textures[1] = TextureIO.newTexture(new File("data/dragons.jpg"), false);
             long start3 = System.nanoTime();
             logger.info("Load texture 1: {}ms", (start2-start1) / 1000000f);
             logger.info("Load texture 2: {}ms", (start3-start2) / 1000000f);
              start1 = System.nanoTime();
-            textures[2] = TextureIO.newTexture(new File("data/eagles.jpg"), false);
+            textures[2] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/eagles.jpg"));
+            //textures[2] = TextureIO.newTexture(new File("data/eagles.jpg"), false);
              start2 = System.nanoTime();
-            textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
+            textures[3] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/moonshade.jpg"));
+            //textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
              start3 = System.nanoTime();
             logger.info("Load texture 3: {}ms", (start2-start1) / 1000000f);
             logger.info("Load texture 4: {}ms", (start3-start2) / 1000000f);
+
+            logger.info("est. mem size text 1: {}", textures[0].getEstimatedMemorySize());
+            logger.info("est. mem size text 2: {}", textures[1].getEstimatedMemorySize());
+            logger.info("est. mem size text 3: {}", textures[2].getEstimatedMemorySize());
+            logger.info("est. mem size text 4: {}", textures[3].getEstimatedMemorySize());
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
