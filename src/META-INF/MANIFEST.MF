@@ -8,4 +8,3 @@ Class-Path: gluegen-rt.jar jogl-all-noawt.jar slf4j-api-1.7.5.jar slf4
  atives-macosx-universal.jar gluegen-rt-natives-linux-armv6hf.jar jogl
  -all-natives-linux-armv6hf.jar
 Main-Class: com.persesgames.jogl.jogl.TestJogl
-
