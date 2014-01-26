@@ -14,9 +14,6 @@ import javax.media.opengl.GLProfile;
 public class TestJogl {
 
     public static void main(String [] args) {
-        System.out.println("java.library.path:");
-        System.out.println(System.getProperty("java.library.path"));
-
         TestJogl test = new TestJogl();
 
         test.run();
