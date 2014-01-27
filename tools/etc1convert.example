@@ -1,0 +1,1 @@
+java -cp gdx-tools.jar:gdx.jar:gdx-natives.jar:. com.badlogic.gdx.tools.etc1.ETC1Compressor data dataetc1

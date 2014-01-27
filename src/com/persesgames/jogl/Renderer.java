@@ -3,19 +3,14 @@ package com.persesgames.jogl;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.opengl.GLWindow;
-import com.jogamp.opengl.util.texture.Texture;
-import com.jogamp.opengl.util.texture.TextureData;
-import com.jogamp.opengl.util.texture.TextureIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.media.opengl.*;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Date: 10/25/13
@@ -49,9 +44,9 @@ public class Renderer implements GLEventListener  {
 
     private int                     txtVertices;
 
-    private Texture                 source;
-    private Texture                 dest;
-    private Texture []              textures = new Texture[4];
+    private int                     source;
+    private int                     dest;
+    private int []                  textures = new int[4];
     private int                     currentDest = 1;
 
     private Fader []                faders;
@@ -119,24 +114,45 @@ public class Renderer implements GLEventListener  {
         Renderer.this.glWindow.destroy();
     }
 
-    public Texture loadTexture(GL gl, URL image1) throws IOException {
-        URLConnection yc = null;
+    public int loadTexture(GL gl, InputStream input) throws IOException {
+        int [] handles = new int[1];
 
-        yc = image1.openConnection();
+        gl.glGenTextures(1, handles, 0);
+
+        int result = handles[0];
         //textures[0] = TextureIO.newTexture(image1, false, "jpg");
 
-        try (InputStream in = new BufferedInputStream(yc.getInputStream())) {
-            TextureData data = TextureIO.newTextureData(GLProfile.getGL2ES2(), in, false, "jpg");
-            Texture result = new Texture(gl, data);
+        gl.glBindTexture(GLES2.GL_TEXTURE_2D, result);
+        byte [] buffer = new byte[1<<16];
+
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(input)))) {
+            int fileSize = in.readInt();
+            ByteBuffer compressedData = ByteBuffer.allocate(fileSize);
+            int readBytes = 0;
+            while ((readBytes = in.read(buffer)) != -1) {
+                compressedData.put(buffer, 0, readBytes);//Exception occurs here
+            }
+            compressedData.position(0);
+            compressedData.limit(compressedData.capacity());
+
+            gl.glCompressedTexImage2D(GLES2.GL_TEXTURE_2D, 0, GLES2.GL_ETC1_RGB8_OES, 2048, 1024, 0, fileSize, compressedData);
+
+            logger.info("Loading compressed texture: {}", gl.glGetError());
+
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
+
+            // Poor filtering. Needed !
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
 
             return result;
         }
     }
 
-
     @Override
     public void init(GLAutoDrawable drawable) {
-        GL2ES2 gl = drawable.getGL().getGL2ES2();
+        GLES2 gl = drawable.getGL().getGLES2();
 
         logger.info("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
         logger.info("INIT GL IS: " + gl.getClass().getName());
@@ -148,6 +164,18 @@ public class Renderer implements GLEventListener  {
         int [] result = new int[1];
         gl.glGetIntegerv(GL2.GL_MAX_VERTEX_ATTRIBS, result, 0);
         logger.info("GL_MAX_VERTEX_ATTRIBS=" + result[0]);
+
+        gl.glGetIntegerv(GL2.GL_NUM_COMPRESSED_TEXTURE_FORMATS, result, 0);
+        logger.info("GL_NUM_COMPRESSED_TEXTURE_FORMATS={}", result[0]);
+
+        int [] formats = new int[result[0]];
+        gl.glGetIntegerv(GL2.GL_COMPRESSED_TEXTURE_FORMATS, formats, 0);
+
+        for (int i : formats) {
+            logger.info("GL_COMPRESSED_TEXTURE_FORMATS={}", i);
+        }
+
+        logger.info("GL_ETC1_RGB8_OES={}", GLES2.GL_ETC1_RGB8_OES);
 
         gl.setSwapInterval(1);
 
@@ -175,39 +203,30 @@ public class Renderer implements GLEventListener  {
         try {
 
             long start1 = System.nanoTime();
-            textures[0] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/magma.jpg"));
+            textures[0] = loadTexture(gl, new FileInputStream("data/magma.etc1"));
             //textures[0] = TextureIO.newTexture(new File("data/magma.jpg"), false);
             long start2 = System.nanoTime();
-            textures[1] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/dragons.jpg"));
+            textures[0] = loadTexture(gl, new FileInputStream("data/dragons.etc1"));
             //textures[1] = TextureIO.newTexture(new File("data/dragons.jpg"), false);
             long start3 = System.nanoTime();
             logger.info("Load texture 1: {}ms", (start2-start1) / 1000000f);
             logger.info("Load texture 2: {}ms", (start3-start2) / 1000000f);
              start1 = System.nanoTime();
-            textures[2] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/eagles.jpg"));
+            textures[0] = loadTexture(gl, new FileInputStream("data/eagles.etc1"));
             //textures[2] = TextureIO.newTexture(new File("data/eagles.jpg"), false);
              start2 = System.nanoTime();
-            textures[3] = loadTexture(gl, new URL("http://127.0.0.1:8901/data/moonshade.jpg"));
+            textures[0] = loadTexture(gl, new FileInputStream("data/moonshade.etc1"));
             //textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
              start3 = System.nanoTime();
             logger.info("Load texture 3: {}ms", (start2-start1) / 1000000f);
             logger.info("Load texture 4: {}ms", (start3-start2) / 1000000f);
 
-            logger.info("est. mem size text 1: {}", textures[0].getEstimatedMemorySize());
-            logger.info("est. mem size text 2: {}", textures[1].getEstimatedMemorySize());
-            logger.info("est. mem size text 3: {}", textures[2].getEstimatedMemorySize());
-            logger.info("est. mem size text 4: {}", textures[3].getEstimatedMemorySize());
+//            logger.info("est. mem size text 1: {}", textures[0].getEstimatedMemorySize());
+//            logger.info("est. mem size text 2: {}", textures[1].getEstimatedMemorySize());
+//            logger.info("est. mem size text 3: {}", textures[2].getEstimatedMemorySize());
+//            logger.info("est. mem size text 4: {}", textures[3].getEstimatedMemorySize());
         } catch (IOException e) {
             throw new IllegalStateException(e);
-        }
-
-        for (int i = 0; i < textures.length; i++) {
-            // "Bind" the newly created texture : all future texture functions will modify this texture
-            textures[i].bind(gl);
-
-            // Poor filtering. Needed !
-            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
-            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
         }
 
         source = textures[0];
@@ -236,7 +255,7 @@ public class Renderer implements GLEventListener  {
             faders[currentFader].reset();
         }
 
-        GL2ES2 gl = drawable.getGL().getGL2ES2();
+        GLES2 gl = drawable.getGL().getGLES2();
 
         /* Draw to screen */
 
@@ -277,7 +296,7 @@ public class Renderer implements GLEventListener  {
             gl.glUniform1f(uAlpha, 1.0f);
             gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
 
-            source.bind(gl);
+            gl.glBindTexture(GLES2.GL_TEXTURE_2D, source);
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle fan
         } else {
@@ -286,14 +305,14 @@ public class Renderer implements GLEventListener  {
             gl.glUniform1f(uAlpha, faders[currentFader].getSourceAlpha());
             gl.glUniformMatrix4fv(uModelView , 1, false, faders[currentFader].getSourceModelViewMatrix().get(),  0);
 
-            source.bind(gl);
+            gl.glBindTexture(GLES2.GL_TEXTURE_2D, source);
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
 
             gl.glUniform1f(uAlpha, faders[currentFader].getDestinationAlpha());
             gl.glUniformMatrix4fv(uModelView , 1, false, faders[currentFader].getDestinationModelViewMatrix().get(),  0);
 
-            dest.bind(gl);
+            gl.glBindTexture(GLES2.GL_TEXTURE_2D, dest);
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4);
 

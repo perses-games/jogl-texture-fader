@@ -27,7 +27,7 @@ public class TestJogl {
     private final Renderer renderer;
 
     public TestJogl() {
-        GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL2ES2));
+        GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GLES2));
 
         caps.setBackgroundOpaque(true);
         caps.setDoubleBuffered(true);
@@ -36,9 +36,9 @@ public class TestJogl {
 
         glWindow.setTitle("jogl-triangle");
 
-        glWindow.setSize(1920, 1080);
+        glWindow.setSize(1920/2, 1080/2);
 
-        glWindow.setFullscreen(true);
+        glWindow.setFullscreen(false);
         glWindow.setUndecorated(true);
         glWindow.setPointerVisible(false);
         glWindow.setVisible(true);
