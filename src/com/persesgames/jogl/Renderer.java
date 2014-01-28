@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import javax.media.opengl.*;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.zip.GZIPInputStream;
 
@@ -69,16 +70,13 @@ public class Renderer implements GLEventListener  {
         this.glWindow = glWindow;
         this.keyboard = keyboard;
 
-        aspect = 1920f/1080f;
-        this.projectionMatrix.setPerspectiveProjection(90f, aspect, 1.0f, 50.0f);
-
         faders = new Fader[5];
 
-        faders[0] = new SlideFader(aspect, SlideFader.SlideDirection.RIGHT);
-        faders[1] = new ZoomInFader(aspect);
-        faders[2] = new RotateInFader(aspect);
-        faders[3] = new RotateInFader2(aspect);
-        faders[4] = new TestFader(aspect);
+        faders[0] = new SlideFader( SlideFader.SlideDirection.RIGHT);
+        faders[1] = new ZoomInFader();
+        faders[2] = new RotateInFader();
+        faders[3] = new RotateInFader2();
+        faders[4] = new TestFader();
 
         this.faders[currentFader].reset();
     }
@@ -114,7 +112,42 @@ public class Renderer implements GLEventListener  {
         Renderer.this.glWindow.destroy();
     }
 
-    public int loadTexture(GL gl, InputStream input) throws IOException {
+    public int loadRawTexture(GL gl, int width, int height, InputStream input) throws IOException {
+        int [] handles = new int[1];
+
+        gl.glGenTextures(1, handles, 0);
+
+        int result = handles[0];
+
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GLES2.GL_TEXTURE_2D, result);
+
+        int imageSize = width * height * 3;
+        byte [] buffer = new byte[imageSize];
+
+        try (BufferedInputStream in = new BufferedInputStream(input)) {
+            int readBytes = in.read(buffer);
+
+            assert readBytes == imageSize;
+
+            ByteBuffer data = ByteBuffer.wrap(buffer);
+
+            gl.glTexImage2D(GLES2.GL_TEXTURE_2D, 0, GLES2.GL_RGB, width, height, 0, GLES2.GL_RGB, GLES2.GL_UNSIGNED_BYTE, data);
+
+            logger.info("Loading texture: {}", gl.glGetError());
+
+//            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
+//            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
+
+            // Poor filtering. Needed !
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
+
+            return result;
+        }
+    }
+
+    public int loadETC1Texture(GL gl, InputStream input) throws IOException {
         int [] handles = new int[1];
 
         gl.glGenTextures(1, handles, 0);
@@ -122,12 +155,15 @@ public class Renderer implements GLEventListener  {
         int result = handles[0];
         //textures[0] = TextureIO.newTexture(image1, false, "jpg");
 
+        gl.glActiveTexture(GL.GL_TEXTURE0);
         gl.glBindTexture(GLES2.GL_TEXTURE_2D, result);
+
         byte [] buffer = new byte[1<<16];
 
         try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(input)))) {
             int fileSize = in.readInt();
             ByteBuffer compressedData = ByteBuffer.allocate(fileSize);
+            compressedData.order(ByteOrder.BIG_ENDIAN);
             int readBytes = 0;
             while ((readBytes = in.read(buffer)) != -1) {
                 compressedData.put(buffer, 0, readBytes);//Exception occurs here
@@ -135,7 +171,10 @@ public class Renderer implements GLEventListener  {
             compressedData.position(0);
             compressedData.limit(compressedData.capacity());
 
-            gl.glCompressedTexImage2D(GLES2.GL_TEXTURE_2D, 0, GLES2.GL_ETC1_RGB8_OES, 2048, 1024, 0, fileSize, compressedData);
+            // 8 * ((2048 + 3) >> 2) * ((1024 + 3) >> 2);
+            int uiSize = 8 * 512 * 256;
+
+            gl.glCompressedTexImage2D(GLES2.GL_TEXTURE_2D, 0, GLES2.GL_ETC1_RGB8_OES, 2048, 1024, 0, uiSize, compressedData);
 
             logger.info("Loading compressed texture: {}", gl.glGetError());
 
@@ -143,8 +182,8 @@ public class Renderer implements GLEventListener  {
             gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
 
             // Poor filtering. Needed !
-            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NICEST);
-            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NICEST);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+            gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
 
             return result;
         }
@@ -162,20 +201,11 @@ public class Renderer implements GLEventListener  {
         logger.info("GL_GLSL_VERSION: " + gl.glGetString(GL2.GL_SHADING_LANGUAGE_VERSION));
 
         int [] result = new int[1];
-        gl.glGetIntegerv(GL2.GL_MAX_VERTEX_ATTRIBS, result, 0);
+        gl.glGetIntegerv(GLES2.GL_MAX_VERTEX_ATTRIBS, result, 0);
         logger.info("GL_MAX_VERTEX_ATTRIBS=" + result[0]);
 
-        gl.glGetIntegerv(GL2.GL_NUM_COMPRESSED_TEXTURE_FORMATS, result, 0);
-        logger.info("GL_NUM_COMPRESSED_TEXTURE_FORMATS={}", result[0]);
-
-        int [] formats = new int[result[0]];
-        gl.glGetIntegerv(GL2.GL_COMPRESSED_TEXTURE_FORMATS, formats, 0);
-
-        for (int i : formats) {
-            logger.info("GL_COMPRESSED_TEXTURE_FORMATS={}", i);
-        }
-
-        logger.info("GL_ETC1_RGB8_OES={}", GLES2.GL_ETC1_RGB8_OES);
+        gl.glGetIntegerv(GLES2.GL_MAX_TEXTURE_SIZE, result, 0);
+        logger.info("GL_MAX_TEXTURE_SIZE=" + result[0]);
 
         gl.setSwapInterval(1);
 
@@ -203,36 +233,33 @@ public class Renderer implements GLEventListener  {
         try {
 
             long start1 = System.nanoTime();
-            textures[0] = loadTexture(gl, new FileInputStream("data/magma.etc1"));
+            textures[0] = loadRawTexture(gl, 2048, 1024, new FileInputStream("data/magma.raw"));
             //textures[0] = TextureIO.newTexture(new File("data/magma.jpg"), false);
             long start2 = System.nanoTime();
-            textures[0] = loadTexture(gl, new FileInputStream("data/dragons.etc1"));
+            logger.info("Load texture 1: {}ms", (start2-start1) / 1000000f);
+
+            textures[1] = loadRawTexture(gl, 1920, 1080, new FileInputStream("data/dragons.data"));
             //textures[1] = TextureIO.newTexture(new File("data/dragons.jpg"), false);
             long start3 = System.nanoTime();
-            logger.info("Load texture 1: {}ms", (start2-start1) / 1000000f);
             logger.info("Load texture 2: {}ms", (start3-start2) / 1000000f);
-             start1 = System.nanoTime();
-            textures[0] = loadTexture(gl, new FileInputStream("data/eagles.etc1"));
+
+            start1 = System.nanoTime();
+            textures[2] = loadRawTexture(gl, 2048, 1024, new FileInputStream("data/eagles.raw"));
             //textures[2] = TextureIO.newTexture(new File("data/eagles.jpg"), false);
-             start2 = System.nanoTime();
-            textures[0] = loadTexture(gl, new FileInputStream("data/moonshade.etc1"));
-            //textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
-             start3 = System.nanoTime();
+            start2 = System.nanoTime();
             logger.info("Load texture 3: {}ms", (start2-start1) / 1000000f);
+
+            textures[3] = loadRawTexture(gl, 2048, 1024, new FileInputStream("data/moonshade.raw"));
+            //textures[3] = TextureIO.newTexture(new File("data/moonshade.jpg"), false);
+            start3 = System.nanoTime();
             logger.info("Load texture 4: {}ms", (start3-start2) / 1000000f);
 
-//            logger.info("est. mem size text 1: {}", textures[0].getEstimatedMemorySize());
-//            logger.info("est. mem size text 2: {}", textures[1].getEstimatedMemorySize());
-//            logger.info("est. mem size text 3: {}", textures[2].getEstimatedMemorySize());
-//            logger.info("est. mem size text 4: {}", textures[3].getEstimatedMemorySize());
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
 
         source = textures[0];
         dest = textures[currentDest];
-
-        gl.glViewport(0, 0, width, height);
     }
 
     @Override
@@ -240,8 +267,16 @@ public class Renderer implements GLEventListener  {
 
     }
 
+    private long lastDeltaCalc = System.nanoTime();
+    private float calculateDelta() {
+        long result = System.nanoTime() - lastDeltaCalc;
+        lastDeltaCalc = System.nanoTime();
+        return (float)result / 1000000000f;
+    }
+
     @Override
     public void display(GLAutoDrawable drawable) {
+        float delta = calculateDelta();
         long frameStart = System.nanoTime();
         //logger.info("display+" + System.currentTimeMillis());
 
@@ -258,6 +293,9 @@ public class Renderer implements GLEventListener  {
         GLES2 gl = drawable.getGL().getGLES2();
 
         /* Draw to screen */
+        gl.glViewport(0, 0, width, height);
+        aspect = (float)width / (float)height;
+        this.projectionMatrix.setPerspectiveProjection(90f, aspect, 0.999f, 50.0f);
 
         //gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, width, height);
@@ -291,7 +329,7 @@ public class Renderer implements GLEventListener  {
         if (faders[currentFader] == null || faders[currentFader].done()) {
             modelViewMatrix.setToIdentity();
             modelViewMatrix.scale(aspect, 1, 1);
-            modelViewMatrix.translate(0,0,-1);
+            modelViewMatrix.translate(0,0,-1f);
 
             gl.glUniform1f(uAlpha, 1.0f);
             gl.glUniformMatrix4fv(uModelView , 1, false, modelViewMatrix.get(),  0);
@@ -300,7 +338,7 @@ public class Renderer implements GLEventListener  {
 
             gl.glDrawArrays(GL2ES2.GL_TRIANGLE_FAN, 0, 4); //Draw the vertices as triangle fan
         } else {
-            faders[currentFader].update(0.016f);
+            faders[currentFader].update(delta, aspect);
 
             gl.glUniform1f(uAlpha, faders[currentFader].getSourceAlpha());
             gl.glUniformMatrix4fv(uModelView , 1, false, faders[currentFader].getSourceModelViewMatrix().get(),  0);
@@ -363,7 +401,7 @@ public class Renderer implements GLEventListener  {
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
-        logger.info("reshape+" + System.currentTimeMillis());
+        logger.info("reshape {},{} {},{}", x, y, w, h);
 
         this.width = w;
         this.height = h;

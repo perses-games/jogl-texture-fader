@@ -7,28 +7,22 @@ package com.persesgames.jogl;
  */
 public class RotateInFader2 extends Fader {
 
-    private float aspect;
-    private float time = 0;
-
     private Matrix source = new Matrix();
     private Matrix dest = new Matrix();
 
     private float z;
 
-    public RotateInFader2(float aspect) {
-        this.aspect = aspect;
-    }
-
     @Override
     public void reset() {
-        time = 0;
+        super.reset();
 
         z = -10.8f;
     }
 
     @Override
-    public void update(float time) {
-        this.time += time;
+    public void update(float time, float aspect) {
+        super.update(time, aspect);
+
         this.z += time * 20;
 
         if (z > -1) {

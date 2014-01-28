@@ -7,36 +7,15 @@ package com.persesgames.jogl;
  */
 public class TestFader extends Fader {
 
-    private float aspect;
-    private float time = 0;
-
     private Matrix source = new Matrix();
     private Matrix dest = new Matrix();
 
-    public TestFader(float aspect) {
-        this.aspect = aspect;
-    }
-
     @Override
-    public void reset() {
-        time = 0;
-
+    public Matrix getSourceModelViewMatrix() {
         source.setToIdentity();
         source.scale(aspect, 1, 1);
         source.translate(0,0,-1);
 
-        dest.setToIdentity();
-        dest.scale(aspect, 1, 1);
-        dest.translate(0,0,-1);
-    }
-
-    @Override
-    public void update(float time) {
-        this.time += time;
-    }
-
-    @Override
-    public Matrix getSourceModelViewMatrix() {
         return source;
     }
 
@@ -46,6 +25,10 @@ public class TestFader extends Fader {
 
     @Override
     public Matrix getDestinationModelViewMatrix() {
+        dest.setToIdentity();
+        dest.scale(aspect, 1, 1);
+        dest.translate(0,0,-1);
+
         return dest;
     }
 

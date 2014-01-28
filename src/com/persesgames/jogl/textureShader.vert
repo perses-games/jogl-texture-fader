@@ -22,5 +22,5 @@ void main(void) {
     ty = ty / 2.0;
 
     v_texCoords = vec2(tx, ty);
-    gl_Position = projection * modelView * attribute_Position;
+    gl_Position = projection * modelView * vec4(attribute_Position.x, -attribute_Position.y, 0, 1);
 }

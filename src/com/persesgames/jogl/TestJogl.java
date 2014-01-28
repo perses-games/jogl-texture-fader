@@ -3,7 +3,6 @@ package com.persesgames.jogl;
 import com.jogamp.newt.event.WindowAdapter;
 import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
-import com.persesgames.web.WebServer;
 
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
@@ -15,18 +14,19 @@ import javax.media.opengl.GLProfile;
 public class TestJogl {
 
     public static void main(String [] args) throws Exception {
-        WebServer server = new WebServer(8901);
+//        WebServer server = new WebServer(8901);
 
-        TestJogl test = new TestJogl();
+        boolean debug = args.length > 0 && args[0].equals("true");
+        TestJogl test = new TestJogl(debug);
 
         test.run();
 
-        server.stop();
+//        server.stop();
     }
 
     private final Renderer renderer;
 
-    public TestJogl() {
+    public TestJogl(boolean debug) {
         GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GLES2));
 
         caps.setBackgroundOpaque(true);
@@ -36,9 +36,14 @@ public class TestJogl {
 
         glWindow.setTitle("jogl-triangle");
 
-        glWindow.setSize(1920/2, 1080/2);
+        if (debug) {
+            glWindow.setSize(1920/2, 1080/2);
+            glWindow.setFullscreen(false);
+        } else {
+            glWindow.setSize(glWindow.getWidth(), glWindow.getHeight());
+            glWindow.setFullscreen(true);
+        }
 
-        glWindow.setFullscreen(false);
         glWindow.setUndecorated(true);
         glWindow.setPointerVisible(false);
         glWindow.setVisible(true);

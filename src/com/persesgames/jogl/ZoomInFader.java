@@ -7,28 +7,22 @@ package com.persesgames.jogl;
  */
 public class ZoomInFader extends Fader {
 
-    private float aspect;
-    private float time = 0;
-
     private Matrix source = new Matrix();
     private Matrix dest = new Matrix();
 
     private float z;
 
-    public ZoomInFader(float aspect) {
-        this.aspect = aspect;
-    }
-
     @Override
     public void reset() {
-        time = 0;
+        super.reset();
 
         z = -50.0f;
     }
 
     @Override
-    public void update(float time) {
-        this.time += time;
+    public void update(float time, float aspect) {
+        super.update(time, aspect);
+
         this.z += time * 100;
 
         if (z > -1) {

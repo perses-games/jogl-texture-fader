@@ -14,9 +14,6 @@ public class SlideFader extends Fader {
         RIGHT;
     }
 
-    private float aspect;
-    private float time = 0;
-
     private SlideDirection direction;
 
     private Matrix source = new Matrix();
@@ -24,22 +21,22 @@ public class SlideFader extends Fader {
 
     private float xoffset, yoffset;
 
-    public SlideFader(float aspect, SlideDirection direction) {
-        this.aspect = aspect;
+    public SlideFader(SlideDirection direction) {
         this.direction = direction;
     }
 
     @Override
     public void reset() {
-        time = 0;
+        super.reset();
 
         xoffset = -2 * aspect;
         yoffset = 0;
     }
 
     @Override
-    public void update(float time) {
-        this.time += time;
+    public void update(float time, float aspect) {
+        super.update(time, aspect);
+
         this.xoffset += time * 4;
 
         if (xoffset > 0) {
