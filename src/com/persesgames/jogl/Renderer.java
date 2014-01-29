@@ -65,6 +65,7 @@ public class Renderer implements GLEventListener  {
     private long                    lastTiming;
 
     private long                    start = System.currentTimeMillis();
+    private boolean piHack;
 
     public Renderer(GLWindow glWindow, Keyboard keyboard) {
         this.glWindow = glWindow;
@@ -298,7 +299,11 @@ public class Renderer implements GLEventListener  {
         this.projectionMatrix.setPerspectiveProjection(90f, aspect, 0.999f, 50.0f);
 
         //gl.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0);
-        gl.glViewport(0, 0, width, height);
+        if (piHack) {
+            gl.glViewport(0, height - 1080, width, 1080);
+        } else {
+            gl.glViewport(0, 0, width, height);
+        }
 
         // Clear screen
         gl.glClearColor(0.3f, 0.0f, 0.3f, 0.5f);
@@ -407,4 +412,11 @@ public class Renderer implements GLEventListener  {
         this.height = h;
     }
 
+    public void setPiHack(boolean piHack) {
+        this.piHack = piHack;
+    }
+
+    public boolean isPiHack() {
+        return piHack;
+    }
 }

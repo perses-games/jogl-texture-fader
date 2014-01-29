@@ -17,7 +17,9 @@ public class TestJogl {
 //        WebServer server = new WebServer(8901);
 
         boolean debug = args.length > 0 && args[0].equals("true");
-        TestJogl test = new TestJogl(debug);
+        boolean pihack = args.length > 1 && args[1].equals("true");
+
+        TestJogl test = new TestJogl(debug, pihack);
 
         test.run();
 
@@ -26,10 +28,10 @@ public class TestJogl {
 
     private final Renderer renderer;
 
-    public TestJogl(boolean debug) {
+    public TestJogl(boolean debug, boolean pihack) {
         GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GLES2));
 
-        caps.setBackgroundOpaque(true);
+        //caps.setBackgroundOpaque(true);
         caps.setDoubleBuffered(true);
 
         GLWindow glWindow = GLWindow.create(caps);
@@ -40,7 +42,7 @@ public class TestJogl {
             glWindow.setSize(1920/2, 1080/2);
             glWindow.setFullscreen(false);
         } else {
-            glWindow.setSize(glWindow.getWidth(), glWindow.getHeight());
+            //glWindow.setSize(1024, 768);
             glWindow.setFullscreen(true);
         }
 
@@ -52,6 +54,7 @@ public class TestJogl {
         glWindow.addKeyListener(keyboard);
 
         renderer = new Renderer(glWindow, keyboard);
+        renderer.setPiHack(pihack);
 
         glWindow.addGLEventListener(renderer);
 
